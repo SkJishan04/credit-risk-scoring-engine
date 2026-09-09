@@ -1,0 +1,1 @@
+"""Model definitions: T-GAT embedder, XGBoost scorer, and their ensemble."""
