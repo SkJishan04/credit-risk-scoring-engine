@@ -29,6 +29,7 @@ import pandas as pd
 from credit_risk.data.schemas import SectorEnum
 
 SECTORS = list(SectorEnum)
+SECTOR_VALUES = [s.value for s in SectorEnum]
 
 
 @dataclass
@@ -47,7 +48,10 @@ def generate_synthetic_dataset(n_businesses: int = 4000, seed: int = 42) -> Gene
 
     business_ids = [f"biz_{i:05d}" for i in range(n_businesses)]
     latent_risk = _generate_business_latent_risk(rng, n_businesses)
-    sectors = rng.choice(SECTORS, size=n_businesses)
+    # rng.choice on a list of str-Enum members silently coerces to a numpy
+    # unicode array (losing the Enum wrapper), so choose from plain string
+    # values instead of relying on numpy to preserve Enum instances.
+    sectors = rng.choice(SECTOR_VALUES, size=n_businesses)
     months_active = rng.integers(3, 96, size=n_businesses)
     declared_revenue = rng.lognormal(mean=9.5, sigma=0.9, size=n_businesses)
 
@@ -66,7 +70,7 @@ def generate_synthetic_dataset(n_businesses: int = 4000, seed: int = 42) -> Gene
         n_tx = int(rng.poisson(40 + 60 * (1 - risk)))
         distress_state = 0.0  # grows if payments are missed, feeds autocorrelation
 
-        for t in range(n_tx):
+        for _tx_idx in range(n_tx):
             days_ago = int(rng.integers(0, 365))
             tx_date = today - timedelta(days=days_ago)
             is_inflow = rng.random() < (n_buyers / max(1, n_buyers + n_vendors))
@@ -109,7 +113,7 @@ def generate_synthetic_dataset(n_businesses: int = 4000, seed: int = 42) -> Gene
         profile_rows.append(
             {
                 "business_id": business_id,
-                "sector": sectors[idx].value,
+                "sector": str(sectors[idx]),
                 "months_active": int(months_active[idx]),
                 "declared_monthly_revenue": round(float(declared_revenue[idx]), 2),
                 "n_active_vendors": n_vendors,
