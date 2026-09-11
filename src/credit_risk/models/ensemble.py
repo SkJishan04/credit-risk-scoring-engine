@@ -56,7 +56,7 @@ class CreditRiskEnsemble:
         self.xgb_scorer = xgb_scorer
 
     @classmethod
-    def load(cls, tgat_path: Path, xgb_path: Path, random_seed: int = 42) -> "CreditRiskEnsemble":
+    def load(cls, tgat_path: Path, xgb_path: Path, random_seed: int = 42) -> CreditRiskEnsemble:
         tgat = TGATEmbedder(embedding_dim=EMBEDDING_DIM)
         tgat.load_state_dict(torch.load(tgat_path, map_location="cpu"))
         tgat.eval()
