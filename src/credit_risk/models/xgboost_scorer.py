@@ -6,7 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import xgboost as xgb
-from sklearn.calibration import CalibratedClassifierCV
+from sklearn.isotonic import IsotonicRegression
 from sklearn.model_selection import train_test_split
 
 
@@ -14,7 +14,7 @@ class XGBoostScorer:
     def __init__(self, random_seed: int = 42):
         self.random_seed = random_seed
         self.booster: xgb.XGBClassifier | None = None
-        self.calibrator: CalibratedClassifierCV | None = None
+        self.calibrator: IsotonicRegression | None = None
         self.feature_names: list[str] | None = None
 
     def fit(self, X: np.ndarray, y: np.ndarray, feature_names: list[str]) -> dict:
@@ -41,8 +41,16 @@ class XGBoostScorer:
 
         # Calibrate probabilities on the held-out fold so recommended interest
         # rates map to genuinely well-calibrated default probabilities.
-        self.calibrator = CalibratedClassifierCV(base_model, method="isotonic", cv="prefit")
-        self.calibrator.fit(X_val, y_val)
+        #
+        # We fit a standalone IsotonicRegression on the base model's raw
+        # validation-set probabilities rather than sklearn's
+        # CalibratedClassifierCV(cv="prefit"): that API was removed in
+        # scikit-learn >= 1.6, and this approach is simpler, has no
+        # sklearn-version coupling, and calibrates the *already-fit* model
+        # (no data leakage from re-fitting on the validation fold).
+        raw_val_proba = base_model.predict_proba(X_val)[:, 1]
+        self.calibrator = IsotonicRegression(out_of_bounds="clip", y_min=0.0, y_max=1.0)
+        self.calibrator.fit(raw_val_proba, y_val)
 
         return {
             "n_train": len(X_train),
@@ -51,9 +59,10 @@ class XGBoostScorer:
         }
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
-        if self.calibrator is None:
+        if self.booster is None or self.calibrator is None:
             raise RuntimeError("Model has not been fit or loaded yet.")
-        return self.calibrator.predict_proba(X)[:, 1]
+        raw_proba = self.booster.predict_proba(X)[:, 1]
+        return self.calibrator.predict(raw_proba)
 
     def save(self, path: Path) -> None:
         if self.booster is None or self.calibrator is None:
@@ -71,7 +80,7 @@ class XGBoostScorer:
         )
 
     @classmethod
-    def load(cls, path: Path, random_seed: int = 42) -> "XGBoostScorer":
+    def load(cls, path: Path, random_seed: int = 42) -> XGBoostScorer:
         import joblib
 
         payload = joblib.load(path)
