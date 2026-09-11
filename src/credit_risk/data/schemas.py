@@ -1,12 +1,12 @@
 """Core data contracts shared across the pipeline."""
 
 from datetime import date
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
 
-class SectorEnum(str, Enum):
+class SectorEnum(StrEnum):
     RETAIL = "retail"
     MANUFACTURING = "manufacturing"
     SERVICES = "services"
