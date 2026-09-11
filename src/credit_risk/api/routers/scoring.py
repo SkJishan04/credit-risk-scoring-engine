@@ -40,7 +40,9 @@ def score_business(
         service = ScoringService(ensemble=ensemble, db=db)
         response = service.score(request)
     except Exception as exc:  # noqa: BLE001
-        logger.error("scoring_failed", error=str(exc), business_id=request.business_profile.business_id)
+        logger.error(
+            "scoring_failed", error=str(exc), business_id=request.business_profile.business_id
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Scoring failed."
         ) from exc
