@@ -4,7 +4,7 @@ Integration tests for the scoring API.
 The trained ensemble is a real, filesystem-backed artifact, so these tests
 train a tiny model on a small synthetic dataset in a temp directory and
 exercise the FastAPI app end-to-end against it (no network calls, no
-external services required besides an in-memory fake for Redis).
+external services besides an in-memory fake for Redis).
 """
 
 from __future__ import annotations
@@ -33,8 +33,13 @@ def client(trained_settings, monkeypatch):
     dependencies.get_ensemble.cache_clear()
     dependencies.get_redis_client.cache_clear()
 
+    # A single shared fake client, or nothing would ever appear "cached"
+    # across requests -- a fresh lambda-per-call would hand back a brand
+    # new (empty) FakeRedis instance on every invocation.
+    fake_redis_client = fakeredis.FakeRedis(decode_responses=True)
+
     monkeypatch.setattr(dependencies, "get_settings", lambda: trained_settings)
-    monkeypatch.setattr(dependencies, "get_redis_client", lambda: fakeredis.FakeRedis(decode_responses=True))
+    monkeypatch.setattr(dependencies, "get_redis_client", lambda: fake_redis_client)
 
     from credit_risk.api.main import create_app
 
