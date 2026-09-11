@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -20,10 +20,10 @@ class Business(Base):
     declared_monthly_revenue: Mapped[float] = mapped_column(Float, nullable=False)
     n_active_vendors: Mapped[int] = mapped_column(Integer, nullable=False)
     n_active_buyers: Mapped[int] = mapped_column(Integer, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
 
-    transactions: Mapped[list["TransactionRecord"]] = relationship(back_populates="business")
-    scores: Mapped[list["ScoreRecord"]] = relationship(back_populates="business")
+    transactions: Mapped[list[TransactionRecord]] = relationship(back_populates="business")
+    scores: Mapped[list[ScoreRecord]] = relationship(back_populates="business")
 
 
 class TransactionRecord(Base):
@@ -40,7 +40,7 @@ class TransactionRecord(Base):
     invoice_due_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     settled_on_time: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
 
-    business: Mapped["Business"] = relationship(back_populates="transactions")
+    business: Mapped[Business] = relationship(back_populates="transactions")
 
     __table_args__ = (
         Index("ix_transactions_business_id_date", "business_id", "transaction_date"),
@@ -55,8 +55,8 @@ class ScoreRecord(Base):
     default_probability: Mapped[float] = mapped_column(Float, nullable=False)
     credit_score: Mapped[int] = mapped_column(Integer, nullable=False)
     recommended_interest_rate_pct: Mapped[float] = mapped_column(Float, nullable=False)
-    scored_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    scored_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
 
-    business: Mapped["Business"] = relationship(back_populates="scores")
+    business: Mapped[Business] = relationship(back_populates="scores")
 
     __table_args__ = (Index("ix_scores_business_id_scored_at", "business_id", "scored_at"),)
