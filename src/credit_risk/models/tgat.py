@@ -59,11 +59,15 @@ class TGATEmbedder(nn.Module):
     ):
         super().__init__()
         self.window_attn = GraphAttentionWindow(edge_feature_dim, hidden_dim)
-        self.temporal_gru = nn.GRU(input_size=hidden_dim, hidden_size=gru_hidden_dim, batch_first=True)
+        self.temporal_gru = nn.GRU(
+            input_size=hidden_dim, hidden_size=gru_hidden_dim, batch_first=True
+        )
         self.embedding_head = nn.Linear(gru_hidden_dim, embedding_dim)
         self.default_head = nn.Linear(embedding_dim, 1)  # auxiliary supervised head
 
-    def forward(self, edge_features: torch.Tensor, node_mask: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, edge_features: torch.Tensor, node_mask: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         edge_features: [batch, n_windows, max_counterparties, edge_feature_dim]
         node_mask:     [batch, n_windows, max_counterparties]
