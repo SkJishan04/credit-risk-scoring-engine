@@ -9,19 +9,23 @@ End-to-end training pipeline:
 
 from __future__ import annotations
 
+import mlflow
 import numpy as np
 import pandas as pd
 import torch
 from sklearn.model_selection import train_test_split
 from torch import nn, optim
 
-import mlflow
 from credit_risk.config import Settings, get_settings
 from credit_risk.data.synthetic_generator import generate_synthetic_dataset
 from credit_risk.features.engineering import build_tabular_features
 from credit_risk.features.graph_builder import build_graph_batch
 from credit_risk.logging_config import get_logger
-from credit_risk.models.ensemble import EMBEDDING_DIM, feature_names_with_embedding, graphs_to_tensors
+from credit_risk.models.ensemble import (
+    EMBEDDING_DIM,
+    feature_names_with_embedding,
+    graphs_to_tensors,
+)
 from credit_risk.models.tgat import TGATEmbedder
 from credit_risk.models.xgboost_scorer import XGBoostScorer
 from credit_risk.training.evaluate import evaluate_binary_classifier
