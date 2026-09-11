@@ -44,12 +44,21 @@ def build_business_graph(
     ).clip(lower=0, upper=n_time_windows - 1)
     tx["window_idx"] = (n_time_windows - 1) - tx["window_idx"]  # 0 = oldest, last = most recent
 
-    top_counterparties = (
-        tx.groupby("counterparty_id")["amount"].sum().nlargest(max_counterparties).index.tolist()
-    )
+    if tx.empty:
+        top_counterparties: list[str] = []
+    else:
+        top_counterparties = (
+            tx.groupby("counterparty_id")["amount"]
+            .sum()
+            .astype(float)
+            .nlargest(max_counterparties)
+            .index.tolist()
+        )
     counterparty_index = {cp: i for i, cp in enumerate(top_counterparties)}
 
-    edge_features = np.zeros((n_time_windows, max_counterparties, EDGE_FEATURE_DIM), dtype=np.float32)
+    edge_features = np.zeros(
+        (n_time_windows, max_counterparties, EDGE_FEATURE_DIM), dtype=np.float32
+    )
     node_mask = np.zeros((n_time_windows, max_counterparties), dtype=bool)
 
     max_amount = tx["amount"].max() if not tx.empty else 1.0
