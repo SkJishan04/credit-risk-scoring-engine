@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     xgb_model_filename: str = "xgb_scorer.json"
 
     # Experiment tracking
-    mlflow_tracking_uri: str = "file:./mlruns"
+    mlflow_tracking_uri: str = "sqlite:///mlflow.db"
     mlflow_experiment_name: str = "credit-risk-scoring"
 
     # Training
