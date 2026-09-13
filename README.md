@@ -464,3 +464,73 @@ flowchart LR
 > Both fixes are covered by the automated test suite and documented as a case
 > study in resilient system design, not just "getting it to run."
 
+## 🧪 Testing
+
+```bash
+make test
+# or
+pytest -q --cov=credit_risk --cov-report=term-missing
+```
+
+| Suite | What it covers |
+|---|---|
+| `tests/unit/` | Feature engineering, temporal graph construction, XGBoost wrapper |
+| `tests/integration/` | Full API request → response flow against a freshly trained model, with a fake Redis backend |
+| `tests/evaluation/` | CI-enforced minimum AUC-ROC / Brier-score gate on a held-out split |
+
+```text
+16 passed in 16.94s
+```
+
+> ⚠️ The integration suite currently shares `DATABASE_URL` with the local dev
+> environment rather than an isolated test database — acceptable at this
+> project's scope, documented under [Limitations](#-limitations), and listed
+> as a concrete [future improvement](#-future-improvements).
+
+## 🐳 Docker
+
+Multi-stage build — a `builder` stage compiles wheels, and a slim `runtime` stage
+runs as a **non-root user** with a built-in health check.
+
+```bash
+cp .env.example .env
+python scripts/train.py          # produces ./artifacts locally first
+docker compose up --build
+```
+
+```mermaid
+flowchart LR
+    A[docker compose up] --> B[db: PostgreSQL 16]
+    A --> C[redis: Redis 7]
+    A --> D[api: FastAPI service]
+    D -- depends_on: healthy --> B
+    D -- depends_on: healthy --> C
+    D -- mounts read-only --> E[./artifacts]
+```
+
+Services:
+
+| Service | Image | Purpose |
+|---|---|---|
+| `db` | `postgres:16-alpine` | Primary relational store |
+| `redis` | `redis:7-alpine` | Response cache |
+| `api` | Built from `Dockerfile` | FastAPI scoring service |
+
+## 🔁 CI/CD
+
+Every push and pull request to `main` runs a full **GitHub Actions** pipeline:
+
+```mermaid
+flowchart LR
+    A[git push] --> B[Lint — ruff]
+    B --> C[Type Check — mypy]
+    C --> D[Test — pytest + coverage]
+    D --> E[Upload coverage report]
+    E --> F[Docker image build]
+```
+
+- **Lint & type-check** run against the full `src/` and `tests/` trees.
+- **Tests** run against real, service-container Postgres and Redis instances
+  (not mocks) — the same rigor as local development.
+- **Docker build** validates the production image builds cleanly on every push.
+
