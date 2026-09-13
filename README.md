@@ -96,3 +96,104 @@ calibration, explainability, production API design, database schema design,
 caching resilience, automated testing, and containerized deployment — the kind of
 end-to-end ownership expected of an AI/ML/GenAI engineer, not just model-fitting
 in a notebook.
+
+## ✨ Key Features
+
+- 🕸️ **Custom Temporal Graph Attention Network (T-GAT)** — dependency-light, pure
+  PyTorch implementation (no PyTorch Geometric) for maximum reproducibility.
+- 🌲 **Stacked XGBoost meta-model** with isotonic probability calibration for
+  trustworthy, well-calibrated default probabilities.
+- 🔍 **Per-decision explainability** via SHAP — every score ships with the top
+  contributing features.
+- 📊 **Synthetic data generation** with a fully documented, interpretable
+  generative process (payment jitter, vendor concentration, autocorrelated
+  distress spirals) — disclosed transparently rather than hidden.
+- ⚡ **Production-shaped FastAPI service** — typed schemas, dependency injection,
+  structured logging, auto-generated OpenAPI docs.
+- 🗄️ **Relational persistence** with PostgreSQL, SQLAlchemy 2.0, and
+  Alembic-versioned migrations.
+- 🚦 **Resilient caching** — Redis speeds up repeated requests, but a Redis outage
+  degrades gracefully instead of failing scoring requests.
+- 📈 **Experiment tracking** with MLflow (SQLite-backed, zero extra services).
+- 🧪 **Real automated test suite** — unit, integration, and CI-enforced model
+  quality gates (not vanity tests).
+- 🐳 **Multi-stage Docker build** and **GitHub Actions CI/CD** pipeline.
+
+## 🔄 System Workflow
+
+```mermaid
+flowchart TD
+    A[📥 Client submits business profile + transactions] --> B{Cache hit?}
+    B -- Yes --> C[⚡ Return cached score]
+    B -- No / Redis unavailable --> D[🧮 Feature Engineering]
+    D --> E[🕸️ Build temporal transaction graph]
+    E --> F[🧠 T-GAT Embedding]
+    D --> G[📐 Tabular Features]
+    F --> H[🔗 Concatenate Features]
+    G --> H
+    H --> I[🌲 Calibrated XGBoost]
+    I --> J[📊 Default Probability]
+    J --> K[💯 Credit Score 300–900]
+    J --> L[💵 Recommended Interest Rate]
+    I --> M[🔍 SHAP Explanation]
+    J --> N[🗄️ Persist to PostgreSQL]
+    K --> O[📤 Response to Client]
+    L --> O
+    M --> O
+```
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart LR
+    A[Vendor / Buyer Transactions] --> B[Feature Engineering<br/>cash-flow intervals, HHI, on-time %]
+    A --> C[Temporal Graph Builder<br/>windowed bipartite graph]
+    C --> D[T-GAT Embedder<br/>graph attention + GRU]
+    B --> E[Feature Concatenation]
+    D --> E
+    E --> F[Calibrated XGBoost<br/>meta-model]
+    F --> G[Default Probability]
+    G --> H[Dynamic Credit Score 300-900]
+    G --> I[Recommended Interest Rate]
+    F --> J[SHAP Explainability]
+```
+
+<!--
+  PLACEHOLDER — architecture illustration
+  Suggested: a clean layered-diagram infographic (data → graph model → ensemble → API).
+  Save as: docs/images/architecture-illustration.png
+-->
+![Architecture Illustration](./docs/images/architecture-illustration.png)
+
+### Request lifecycle
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API as FastAPI
+    participant Cache as Redis
+    participant DB as PostgreSQL
+    participant Model as T-GAT + XGBoost
+
+    Client->>API: POST /api/v1/scoring
+    API->>Cache: check cached response (non-fatal if Redis is down)
+    alt cache hit
+        Cache-->>API: cached score
+    else cache miss
+        API->>DB: upsert business + transactions
+        API->>Model: features → embedding → probability
+        Model-->>API: score, rate, SHAP factors
+        API->>DB: persist score
+        API->>Cache: store response (non-fatal if Redis is down)
+    end
+    API-->>Client: ScoreResponse
+```
+
+### Why a stacked ensemble, not a single model?
+
+| Component | Role |
+|---|---|
+| **T-GAT** | Learns *relational + temporal* structure — who a business transacts with, how consistently, and how that evolves over time. |
+| **Tabular features** | Captures interpretable, auditable signals (concentration ratios, on-time %) that a regulator or credit committee can sanity-check directly. |
+| **XGBoost meta-model** | Combines both into a single, calibrated, well-understood tabular model — strong performance without sacrificing explainability. |
+
