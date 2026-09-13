@@ -197,3 +197,63 @@ sequenceDiagram
 | **Tabular features** | Captures interpretable, auditable signals (concentration ratios, on-time %) that a regulator or credit committee can sanity-check directly. |
 | **XGBoost meta-model** | Combines both into a single, calibrated, well-understood tabular model — strong performance without sacrificing explainability. |
 
+## 🛠️ Tech Stack
+
+| Layer | Choice | Why |
+|---|---|---|
+| **API** | FastAPI + Pydantic v2 | Async, fully typed, auto-generated OpenAPI docs |
+| **Graph / Deep Learning** | PyTorch (custom T-GAT, no PyG) | Avoids CUDA/PyG wheel fragility — trivially reproducible |
+| **Tabular Model** | XGBoost + isotonic calibration | Strong tabular baseline with well-calibrated probabilities |
+| **Explainability** | SHAP | Per-decision feature attribution, essential in a regulated domain |
+| **Database** | PostgreSQL + SQLAlchemy 2.0 + Alembic | Relational integrity with versioned, reviewable schema migrations |
+| **Cache** | Redis (non-critical path) | Speeds up repeat requests; scoring degrades gracefully if Redis is down |
+| **Experiment Tracking** | MLflow (SQLite-backed) | Reproducible run history, zero extra infrastructure |
+| **Testing** | Pytest + fakeredis + httpx | Unit, integration, and model-quality gate tests |
+| **CI/CD** | GitHub Actions | Lint → type-check → test → Docker build on every push |
+| **Packaging** | Docker (multi-stage) | Small, non-root, production-conscious image |
+| **Code Quality** | Ruff + Mypy | Fast linting and static typing across the codebase |
+
+## 📁 Project Structure
+
+```text
+credit-risk-scoring-engine/
+├── src/credit_risk/
+│   ├── config.py                # Centralized, environment-driven settings
+│   ├── logging_config.py        # Structured logging (structlog)
+│   ├── data/
+│   │   ├── schemas.py           # Core Pydantic data contracts
+│   │   └── synthetic_generator.py  # Documented synthetic MSME data generator
+│   ├── features/
+│   │   ├── engineering.py       # Tabular feature engineering
+│   │   └── graph_builder.py     # Temporal bipartite graph construction
+│   ├── models/
+│   │   ├── tgat.py              # Temporal Graph Attention Network
+│   │   ├── xgboost_scorer.py    # Calibrated XGBoost meta-model
+│   │   └── ensemble.py          # Stacked ensemble + scoring transformation
+│   ├── training/
+│   │   ├── train_pipeline.py    # End-to-end training pipeline
+│   │   └── evaluate.py          # Evaluation metrics
+│   ├── explainability/
+│   │   └── shap_explainer.py    # SHAP-based per-decision explanations
+│   ├── db/
+│   │   ├── models.py            # SQLAlchemy ORM models
+│   │   ├── session.py           # DB session management
+│   │   └── repository.py        # Data-access layer
+│   └── api/
+│       ├── main.py              # FastAPI application entrypoint
+│       ├── schemas.py           # API request/response schemas
+│       ├── dependencies.py      # Dependency injection (DB, cache, model)
+│       ├── services/            # Business logic (cache, scoring orchestration)
+│       └── routers/             # Route handlers (health, scoring)
+├── alembic/                     # Versioned database migrations
+├── scripts/                     # CLI entrypoints (generate_data.py, train.py)
+├── tests/
+│   ├── unit/                    # Feature engineering, graph builder, XGBoost wrapper
+│   ├── integration/             # Full API flow tests
+│   └── evaluation/              # CI-enforced model-quality gate
+├── .github/workflows/ci.yml     # GitHub Actions pipeline
+├── Dockerfile                   # Multi-stage production build
+├── docker-compose.yml           # API + Postgres + Redis stack
+└── README.md
+```
+
