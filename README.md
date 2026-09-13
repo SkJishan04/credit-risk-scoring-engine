@@ -321,3 +321,88 @@ for the full reference — summarized below:
 | `RANDOM_SEED` | Global reproducibility seed | `42` |
 | `SYNTHETIC_N_BUSINESSES` | Synthetic dataset size for training | `4000` |
 
+## 🔌 API Usage & Examples
+
+### Score a business
+
+```bash
+curl -X POST http://localhost:8000/api/v1/scoring \
+  -H "Content-Type: application/json" \
+  -d '{
+        "business_profile": {
+          "business_id": "biz_00042",
+          "sector": "retail",
+          "months_active": 24,
+          "declared_monthly_revenue": 50000,
+          "n_active_vendors": 3,
+          "n_active_buyers": 5
+        },
+        "transactions": [
+          {
+            "transaction_id": "tx_0",
+            "business_id": "biz_00042",
+            "counterparty_id": "vendor_0",
+            "amount": 1200.0,
+            "direction": "outflow",
+            "transaction_date": "2024-01-01",
+            "invoice_due_date": "2024-01-15",
+            "settled_on_time": true
+          }
+        ]
+      }'
+```
+
+### Response
+
+```json
+{
+  "business_id": "biz_00042",
+  "default_probability": 0.3056,
+  "credit_score": 717,
+  "recommended_interest_rate_pct": 14.72,
+  "top_contributing_factors": [
+    { "feature": "pct_settled_on_time", "shap_value": -0.3089 },
+    { "feature": "revenue_to_txn_volume_ratio", "shap_value": 0.0640 },
+    { "feature": "n_transactions", "shap_value": 0.0193 }
+  ],
+  "cached": false
+}
+```
+
+> 💡 `transaction_id` only needs to be unique **within** a given `business_id`,
+> not globally across the platform — see [Engineering Notes](#-engineering-notes-real-bugs-found--fixed).
+
+## 📸 Results & Screenshots
+
+<!--
+  PLACEHOLDER — Swagger UI / API docs screenshot
+  Save as: docs/images/swagger-ui.png
+-->
+![Swagger UI](./docs/images/swagger-ui.png)
+
+<!--
+  PLACEHOLDER — MLflow experiment comparison screenshot
+  Save as: docs/images/mlflow-experiments.png
+-->
+![MLflow Experiment Tracking](./docs/images/mlflow-experiments.png)
+
+### Sample training run
+
+```text
+2026-09-11 06:34:45 | evaluation_metrics
+    auc_roc=0.776   auc_pr=0.7504   brier_score=0.1901   max_f1=0.7627
+2026-09-11 06:34:45 | training_pipeline_complete
+    tgat_path=artifacts/tgat_embedder.pt   xgb_path=artifacts/xgb_scorer.json
+```
+
+| Metric | Value | What it means |
+|---|---|---|
+| **AUC-ROC** | 0.776 | Strong discrimination between defaulting and non-defaulting businesses |
+| **AUC-PR** | 0.750 | Solid precision-recall trade-off, useful under class imbalance |
+| **Brier Score** | 0.190 | Well-calibrated probabilities — meaningful for interest-rate pricing |
+| **Max F1** | 0.763 | Healthy operating-point performance |
+
+> These metrics are on **synthetic data with a documented, interpretable
+> generative process** — see [Limitations](#-limitations) for what they do and
+> don't claim.
+
