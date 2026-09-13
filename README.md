@@ -534,3 +534,53 @@ flowchart LR
   (not mocks) — the same rigor as local development.
 - **Docker build** validates the production image builds cleanly on every push.
 
+## ⚠️ Limitations
+
+- Training data is **synthetic**; reported metrics demonstrate the architecture
+  learns injected signal correctly — they are **not** claims about real-world
+  MSME default-prediction performance.
+- The T-GAT is a **custom, simplified** attention mechanism, not a literal
+  reproduction of any single published T-GAT paper's architecture.
+- **No authentication/authorization layer** — out of scope for a portfolio
+  demonstration, but a hard requirement before any real deployment.
+- The interest-rate mapping is a **simple linear function** of default
+  probability for demonstration purposes; a production system would calibrate
+  this against real portfolio loss data and regulatory pricing constraints.
+- Integration tests currently share `DATABASE_URL` with the live environment
+  rather than using an isolated test database.
+
+## 🚀 Future Improvements
+
+- [ ] Replace the linear interest-rate function with a proper loss-given-default
+      / expected-loss pricing model.
+- [ ] Add drift monitoring (feature and prediction distribution) with automated
+      retraining triggers.
+- [ ] Add authentication (OAuth2/JWT) and role-based access for loan officers.
+- [ ] Extend the graph to a true multi-hop business-to-business network (shared
+      counterparties), not just per-business bipartite subgraphs.
+- [ ] Point the integration test suite at an isolated test database.
+- [ ] Add a lightweight frontend dashboard for loan officers to review scores
+      and SHAP explanations visually.
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](./LICENSE)
+file for details.
+
+## 🤝 Contact
+
+Built by **[Your Name]** as a portfolio project demonstrating applied AI/ML/GenAI
+engineering — graph representation learning, model stacking, production API
+design, and end-to-end system ownership.
+
+- 🔗 GitHub: [github.com/your-username](https://github.com/your-username)
+- 💼 LinkedIn: [linkedin.com/in/your-profile](https://linkedin.com/in/your-profile)
+- ✉️ Email: your.email@example.com
+
+<div align="center">
+
+⭐ If this project was useful or interesting, consider starring the repository!
+
+</div>
