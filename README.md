@@ -269,7 +269,7 @@ credit-risk-scoring-engine/
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/<your-username>/credit-risk-scoring-engine.git
+git clone https://github.com/<SkJishan04>/credit-risk-scoring-engine.git
 cd credit-risk-scoring-engine
 
 # 2. Create a virtual environment
@@ -571,13 +571,13 @@ file for details.
 
 ## 🤝 Contact
 
-Built by **[Your Name]** as a portfolio project demonstrating applied AI/ML/GenAI
+Built by **Sk Jishan** as a portfolio project demonstrating applied AI/ML/GenAI
 engineering — graph representation learning, model stacking, production API
 design, and end-to-end system ownership.
 
-- 🔗 GitHub: [github.com/your-username](https://github.com/your-username)
+- 🔗 GitHub: [github.com/SkJishan04](https://github.com/SkJishan04)
 - 💼 LinkedIn: [linkedin.com/in/your-profile](https://linkedin.com/in/your-profile)
-- ✉️ Email: your.email@example.com
+- ✉️ Email: skjishan28012004@example.com
 
 <div align="center">
 
