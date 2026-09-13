@@ -257,3 +257,67 @@ credit-risk-scoring-engine/
 └── README.md
 ```
 
+## ⚙️ Setup & Installation
+
+### Prerequisites
+
+- Python 3.11+
+- PostgreSQL 16 and Redis 7 (locally installed, or via Docker)
+- (Optional) Docker & Docker Compose
+
+### Local setup (no Docker)
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/<your-username>/credit-risk-scoring-engine.git
+cd credit-risk-scoring-engine
+
+# 2. Create a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+
+# 3. Install dependencies
+pip install -e ".[dev]"
+
+# 4. Configure environment
+cp .env.example .env
+
+# 5. Start Postgres + Redis (however you prefer)
+docker compose up -d db redis
+# ...or install natively: brew install postgresql@16 redis / apt-get install postgresql redis-server
+
+# 6. Apply database migrations
+alembic upgrade head
+
+# 7. Train the model (writes ./artifacts)
+python scripts/train.py
+
+# 8. Run the API
+uvicorn credit_risk.api.main:app --reload
+```
+
+API docs available at: **`http://localhost:8000/docs`**
+
+### Quick setup with Docker
+
+```bash
+cp .env.example .env
+python scripts/train.py         # produces ./artifacts, mounted read-only into the container
+docker compose up --build
+```
+
+## 🔑 Environment Variables
+
+All configuration is environment-driven (`pydantic-settings`). See `.env.example`
+for the full reference — summarized below:
+
+| Variable | Description | Default |
+|---|---|---|
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql+psycopg://credit_user:credit_pass@localhost:5432/credit_risk_db` |
+| `REDIS_URL` | Redis connection string | `redis://localhost:6379/0` |
+| `SCORE_CACHE_TTL_SECONDS` | Cache TTL for scoring responses | `300` |
+| `MODEL_ARTIFACT_DIR` | Directory for trained model artifacts | `./artifacts` |
+| `MLFLOW_TRACKING_URI` | MLflow tracking store | `sqlite:///mlflow.db` |
+| `RANDOM_SEED` | Global reproducibility seed | `42` |
+| `SYNTHETIC_N_BUSINESSES` | Synthetic dataset size for training | `4000` |
+
