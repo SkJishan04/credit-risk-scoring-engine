@@ -406,3 +406,61 @@ curl -X POST http://localhost:8000/api/v1/scoring \
 > generative process** — see [Limitations](#-limitations) for what they do and
 > don't claim.
 
+## 📐 Evaluation Methodology
+
+- **Train/test split** is stratified on the default label and held **constant**
+  across both the T-GAT pretraining phase and the XGBoost fit — no test-set
+  leakage occurs between stages.
+- **Metrics reported**: AUC-ROC and AUC-PR (discrimination), Brier score
+  (calibration), and max-F1 (operating-point summary).
+- **Calibration** is handled by a standalone `IsotonicRegression` fit on the base
+  model's held-out validation-fold probabilities — not
+  `CalibratedClassifierCV(cv="prefit")`, which was removed in scikit-learn ≥1.6.
+  This keeps calibration correct (no re-fitting on validation data) and
+  independent of a specific sklearn version.
+- **Every run is logged to MLflow** (params, metrics, artifacts) for
+  longitudinal comparison across experiments.
+- A **CI-enforced model-quality gate** (`tests/evaluation/`) fails the build if
+  the pipeline ever regresses below a minimum AUC-ROC / Brier bar — the model's
+  correctness is a tested contract, not just a training-script output.
+
+## 🐛 Engineering Notes: Real Bugs Found & Fixed
+
+This project went through a genuine debugging pass against **live PostgreSQL and
+Redis instances**, not just isolated unit tests. Two production-relevant issues
+surfaced and were fixed properly:
+
+### 1. Transaction IDs were a global primary key, not scoped per business
+
+The original schema made `transaction_id` the sole primary key on the
+`transactions` table — silently assuming transaction references are unique
+**across every business on the platform**. In reality, a client's transaction ID
+(e.g. their own invoice number) is only guaranteed unique **within their own
+books**. Two different businesses legitimately sending `"tx_0"`, `"tx_1"`, ...
+would collide on insert.
+
+**Fix:** moved to a surrogate UUID primary key, with uniqueness enforced on the
+composite `(business_id, transaction_id)` instead, via a proper Alembic
+migration (`0002_transaction_surrogate_key.py`) — not a workaround.
+
+### 2. A Redis outage could take down the entire scoring endpoint
+
+Cache read/write calls originally sat **outside** the endpoint's error handling.
+A momentarily unreachable Redis instance crashed the whole scoring request with
+an unhandled 500, even though caching is purely a performance optimization.
+
+**Fix:** wrapped both cache operations to catch `redis.RedisError`, log a
+warning, and fall through to computing (and simply not caching) the score —
+verified by killing Redis mid-session and confirming `200 OK` responses continue.
+
+```mermaid
+flowchart LR
+    A[🔴 Bug: Redis down] --> B[Old: unhandled 500]
+    A --> C[✅ New: warning logged]
+    C --> D[Score computed normally]
+    D --> E[200 OK, cached: false]
+```
+
+> Both fixes are covered by the automated test suite and documented as a case
+> study in resilient system design, not just "getting it to run."
+
